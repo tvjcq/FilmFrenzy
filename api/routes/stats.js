@@ -76,10 +76,10 @@ router.get("/", async (req, res) => {
 
     // 9. Genres les plus représentés
     const popularGenres = await sequelize.query(
-      `SELECT g.id, g.name, COUNT(mg.id_movie) as movie_count
+      `SELECT g.id, g.genre, COUNT(mg.id_movie) as movie_count
        FROM genres g
        JOIN MoviesGenres mg ON g.id = mg.id_genre
-       GROUP BY g.id, g.name
+       GROUP BY g.id, g.genre
        ORDER BY movie_count DESC
        LIMIT 5`,
       { type: QueryTypes.SELECT }
