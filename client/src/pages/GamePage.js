@@ -176,10 +176,27 @@ const GamePage = () => {
 
       // Update node in the graph data
       setGraphData((prevData) => {
+        // Créer une nouvelle copie de tous les nœuds avec mise à jour du statut découvert
         const updatedNodes = prevData.nodes.map((n) =>
-          n.id === selectedNode.id ? { ...n, discovered: true } : n
+          n.id === selectedNode.id ? { ...n, discovered: true } : { ...n }
         );
-        return { ...prevData, nodes: updatedNodes };
+
+        // Créer une nouvelle copie de tous les liens en maintenant leurs références
+        const updatedLinks = prevData.links.map((link) => {
+          // Pour chaque lien, assurez-vous que source et target sont des chaînes de caractères (ID)
+          // et non des références d'objets
+          return {
+            source:
+              typeof link.source === "object" ? link.source.id : link.source,
+            target:
+              typeof link.target === "object" ? link.target.id : link.target,
+          };
+        });
+
+        return {
+          nodes: updatedNodes,
+          links: updatedLinks,
+        };
       });
 
       // Get the entity ID (remove the prefix)
@@ -227,10 +244,29 @@ const GamePage = () => {
         });
 
         // Update graph data with new nodes and links
-        setGraphData((prevData) => ({
-          nodes: [...prevData.nodes, ...newNodes],
-          links: [...prevData.links, ...newLinks],
-        }));
+        setGraphData((prevData) => {
+          // Créer une nouvelle copie de tous les nœuds avec les nouveaux
+          const allNodes = [
+            ...prevData.nodes.map((n) => ({ ...n })),
+            ...newNodes,
+          ];
+
+          // Créer une nouvelle copie de tous les liens avec les nouveaux
+          const allLinks = [
+            ...prevData.links.map((link) => ({
+              source:
+                typeof link.source === "object" ? link.source.id : link.source,
+              target:
+                typeof link.target === "object" ? link.target.id : link.target,
+            })),
+            ...newLinks,
+          ];
+
+          return {
+            nodes: allNodes,
+            links: allLinks,
+          };
+        });
 
         // Close the modal after a delay
         setTimeout(() => {
@@ -283,7 +319,15 @@ const GamePage = () => {
 
     // Replace the actual name with [...] to avoid giving away the answer
     if (selectedNode) {
-      const nameRegex = new RegExp(selectedNode.name, "gi");
+      const alternatives = [selectedNode.name];
+      if (wikipediaData && wikipediaData.title) {
+        alternatives.push(wikipediaData.title);
+      }
+      // Escape special regex characters in each alternative.
+      const escapedAlternatives = alternatives.map((str) =>
+        str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+      );
+      const nameRegex = new RegExp(escapedAlternatives.join("|"), "gi");
       hint = hint.replace(nameRegex, "[...]");
     }
 
@@ -339,7 +383,7 @@ const GamePage = () => {
 
             // Draw node label only if discovered
             if (node.discovered) {
-              const fontSize = 14 / globalScale;
+              const fontSize = 8 / globalScale;
               ctx.font = `${fontSize}px Sans-Serif`;
               ctx.textAlign = "center";
               ctx.textBaseline = "middle";
@@ -366,8 +410,6 @@ const GamePage = () => {
           }}
           onNodeClick={handleNodeClick}
           cooldownTicks={100}
-          linkDirectionalParticles={2}
-          linkDirectionalParticleSpeed={0.005}
         />
       </div>
 
@@ -443,50 +485,6 @@ const GamePage = () => {
                     <p style={styles.extractText}>{getWikipediaHint()}</p>
                   </div>
                 )}
-
-                {/* Display connected node names as hints */}
-                <div style={styles.connectedNodes}>
-                  <p>Connected to:</p>
-                  <ul style={styles.nodesList}>
-                    {graphData.links
-                      .filter(
-                        (link) =>
-                          ((link.source === selectedNode.id ||
-                            link.target === selectedNode.id) &&
-                            (typeof link.source === "string"
-                              ? discoveredNodes.has(link.source)
-                              : discoveredNodes.has(link.source.id))) ||
-                          (typeof link.target === "string"
-                            ? discoveredNodes.has(link.target)
-                            : discoveredNodes.has(link.target.id))
-                      )
-                      .map((link, index) => {
-                        const connectedNodeId =
-                          link.source === selectedNode.id ||
-                          link.source.id === selectedNode.id
-                            ? typeof link.target === "string"
-                              ? link.target
-                              : link.target.id
-                            : typeof link.source === "string"
-                            ? link.source
-                            : link.source.id;
-
-                        const connectedNode = graphData.nodes.find(
-                          (n) => n.id === connectedNodeId
-                        );
-
-                        if (connectedNode?.discovered) {
-                          return (
-                            <li key={index} style={styles.nodeItem}>
-                              {connectedNode.name}
-                            </li>
-                          );
-                        }
-                        return null;
-                      })
-                      .filter(Boolean)}
-                  </ul>
-                </div>
               </div>
 
               <div style={styles.guessInputContainer}>
@@ -611,16 +609,6 @@ const styles = {
   },
   extractText: {
     fontStyle: "italic",
-  },
-  connectedNodes: {
-    marginTop: "15px",
-  },
-  nodesList: {
-    margin: 0,
-    paddingLeft: "20px",
-  },
-  nodeItem: {
-    margin: "5px 0",
   },
   guessInputContainer: {
     display: "flex",
