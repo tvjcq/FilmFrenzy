@@ -30,9 +30,20 @@ router.get("/movie", async (req, res) => {
     // Récupérer les détails complets du film
     const movieWithDetails = await Movie.findByPk(randomMovie[0].id, {
       include: [
-        { model: Actor, as: "actors" },
-        { model: Genre, as: "genres" },
+        {
+          model: Actor,
+          as: "actors",
+          through: { attributes: [] }, // Exclure les attributs de la table de jointure
+          attributes: { exclude: ["createdAt", "updatedAt"] }, // Exclure createdAt et updatedAt des acteurs
+        },
+        {
+          model: Genre,
+          as: "genres",
+          through: { attributes: [] }, // Exclure les attributs de la table de jointure
+          attributes: { exclude: ["createdAt", "updatedAt"] }, // Exclure createdAt et updatedAt des genres
+        },
       ],
+      attributes: { exclude: ["createdAt", "updatedAt"] }, // Exclure createdAt et updatedAt du film
     });
 
     res.json({
@@ -77,9 +88,19 @@ router.get("/actor", async (req, res) => {
         {
           model: Movie,
           as: "movies",
-          include: [{ model: Genre, as: "genres" }],
+          through: { attributes: [] }, // Exclure les attributs de la table de jointure
+          attributes: { exclude: ["createdAt", "updatedAt"] }, // Exclure createdAt et updatedAt des films
+          include: [
+            {
+              model: Genre,
+              as: "genres",
+              through: { attributes: [] }, // Exclure les attributs de la table de jointure
+              attributes: { exclude: ["createdAt", "updatedAt"] }, // Exclure createdAt et updatedAt des genres
+            },
+          ],
         },
       ],
+      attributes: { exclude: ["createdAt", "updatedAt"] }, // Exclure createdAt et updatedAt de l'acteur
     });
 
     res.json({

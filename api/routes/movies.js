@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { Movie, Actor } = require("../models");
+const { Movie, Actor, Genre } = require("../models");
 
 router.get("/", async (req, res) => {
   try {
@@ -17,7 +17,24 @@ router.get("/:id", async (req, res) => {
 
   try {
     const movie = await Movie.findByPk(id, {
-      include: [{ model: Actor, as: "actors" }],
+      include: [
+        {
+          model: Actor,
+          as: "actors",
+          through: {
+            // Exclure complètement l'objet MoviesActors de la réponse
+            attributes: [],
+          },
+        },
+        {
+          model: Genre,
+          as: "genres",
+          through: {
+            // Exclure complètement l'objet MoviesGenres de la réponse
+            attributes: [],
+          },
+        },
+      ],
     });
 
     if (!movie) {

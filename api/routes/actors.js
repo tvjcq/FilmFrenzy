@@ -17,7 +17,16 @@ router.get("/:id", async (req, res) => {
 
   try {
     const actor = await Actor.findByPk(id, {
-      include: [{ model: Movie, as: "movies" }],
+      include: [
+        {
+          model: Movie,
+          as: "movies",
+          through: {
+            // Exclure complètement l'objet MoviesActors de la réponse
+            attributes: [],
+          },
+        },
+      ],
     });
 
     if (!actor) {

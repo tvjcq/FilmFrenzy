@@ -1,0 +1,550 @@
+openapi: 3.0.3
+info:
+  title: FilmFrenzy API
+  description: API for the FilmFrenzy movie guessing game. Provides endpoints for accessing movies, actors, genres, statistics, and Wikipedia information.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:3001/api
+    description: Local development server
+
+paths:
+  /movies:
+    get:
+      summary: Get all movies
+      description: Retrieves a list of all movies in the database
+      responses:
+        "200":
+          description: A list of movies
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MovieSimple"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /movies/{id}:
+    get:
+      summary: Get a specific movie
+      description: Retrieves detailed information about a specific movie, including its associated actors and genres
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: The unique identifier of the movie
+      responses:
+        "200":
+          description: Detailed movie information
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MovieDetailed"
+        "404":
+          description: Movie not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /actors:
+    get:
+      summary: Get all actors
+      description: Retrieves a list of all actors in the database
+      responses:
+        "200":
+          description: A list of actors
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ActorSimple"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /actors/{id}:
+    get:
+      summary: Get a specific actor
+      description: Retrieves detailed information about a specific actor, including their associated movies
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: The unique identifier of the actor
+      responses:
+        "200":
+          description: Detailed actor information
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActorDetailed"
+        "404":
+          description: Actor not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /genres:
+    get:
+      summary: Get all genres
+      description: Retrieves a list of all genres in the database
+      responses:
+        "200":
+          description: A list of genres
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Genre"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /genres/{id}:
+    get:
+      summary: Get a specific genre
+      description: Retrieves information about a specific genre
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: The unique identifier of the genre
+      responses:
+        "200":
+          description: Genre information
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Genre"
+        "404":
+          description: Genre not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /stats:
+    get:
+      summary: Get database statistics
+      description: Retrieves various statistics about the FilmFrenzy database, including counts of movies, actors, and genres, as well as popular entities and distribution information
+      responses:
+        "200":
+          description: Database statistics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Stats"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /random:
+    get:
+      summary: Get a random entity
+      description: Retrieves a random movie or actor with their relationships
+      responses:
+        "200":
+          description: A random movie or actor
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RandomResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /random/movie:
+    get:
+      summary: Get a random movie
+      description: Retrieves a random movie that has at least one actor or genre
+      responses:
+        "200":
+          description: A random movie with details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RandomMovieResponse"
+        "404":
+          description: No movies with relationships found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /random/actor:
+    get:
+      summary: Get a random actor
+      description: Retrieves a random actor that appears in at least one movie
+      responses:
+        "200":
+          description: A random actor with details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RandomActorResponse"
+        "404":
+          description: No actors with relationships found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /wikipedia/movie/summary/{id}:
+    get:
+      summary: Get Wikipedia summary for a movie
+      description: Retrieves a summary of a movie from Wikipedia
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: The unique identifier of the movie
+      responses:
+        "200":
+          description: Wikipedia summary for the movie
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WikipediaResponse"
+        "404":
+          description: Movie not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /wikipedia/actor/summary/{id}:
+    get:
+      summary: Get Wikipedia summary for an actor
+      description: Retrieves a summary of an actor from Wikipedia
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: The unique identifier of the actor
+      responses:
+        "200":
+          description: Wikipedia summary for the actor
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WikipediaResponse"
+        "404":
+          description: Actor not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+components:
+  schemas:
+    MovieSimple:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: The unique identifier of the movie
+        title:
+          type: string
+          description: The title of the movie
+        year:
+          type: integer
+          description: The year the movie was released
+      required:
+        - id
+        - title
+        - year
+
+    MovieDetailed:
+      allOf:
+        - $ref: "#/components/schemas/MovieSimple"
+        - type: object
+          properties:
+            actors:
+              type: array
+              description: Actors who appeared in the movie
+              items:
+                $ref: "#/components/schemas/ActorSimple"
+            genres:
+              type: array
+              description: Genres associated with the movie
+              items:
+                $ref: "#/components/schemas/Genre"
+
+    ActorSimple:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: The unique identifier of the actor
+        name:
+          type: string
+          description: The name of the actor
+      required:
+        - id
+        - name
+
+    ActorDetailed:
+      allOf:
+        - $ref: "#/components/schemas/ActorSimple"
+        - type: object
+          properties:
+            movies:
+              type: array
+              description: Movies the actor appeared in
+              items:
+                $ref: "#/components/schemas/MovieSimple"
+
+    Genre:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: The unique identifier of the genre
+        genre:
+          type: string
+          description: The name of the genre
+      required:
+        - id
+        - genre
+
+    Stats:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [success]
+          description: Status of the response
+        data:
+          type: object
+          properties:
+            totalMovies:
+              type: integer
+              description: Total number of movies in the database
+            totalActors:
+              type: integer
+              description: Total number of actors in the database
+            totalGenres:
+              type: integer
+              description: Total number of genres in the database
+            moviesByYear:
+              type: array
+              description: Distribution of movies by year
+              items:
+                type: object
+                properties:
+                  year:
+                    type: integer
+                    description: Year of release
+                  count:
+                    type: integer
+                    description: Number of movies released that year
+            averageActorsPerMovie:
+              type: string
+              description: Average number of actors per movie
+            averageGenresPerMovie:
+              type: string
+              description: Average number of genres per movie
+            popularActors:
+              type: array
+              description: Most popular actors (appearing in the most movies)
+              items:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    description: Actor ID
+                  name:
+                    type: string
+                    description: Actor name
+                  movie_count:
+                    type: integer
+                    description: Number of movies the actor appears in
+            popularGenres:
+              type: array
+              description: Most popular genres
+              items:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    description: Genre ID
+                  genre:
+                    type: string
+                    description: Genre name
+                  movie_count:
+                    type: integer
+                    description: Number of movies with this genre
+            moviesByDecade:
+              type: array
+              description: Distribution of movies by decade
+              items:
+                type: object
+                properties:
+                  decade:
+                    type: integer
+                    description: Decade (e.g., 1990, 2000)
+                  count:
+                    type: integer
+                    description: Number of movies in that decade
+          required:
+            - totalMovies
+            - totalActors
+            - totalGenres
+      required:
+        - status
+        - data
+
+    RandomResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [success]
+          description: Status of the response
+        data:
+          oneOf:
+            - $ref: "#/components/schemas/MovieDetailed"
+            - $ref: "#/components/schemas/ActorDetailed"
+      required:
+        - status
+        - data
+
+    RandomMovieResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [success]
+          description: Status of the response
+        data:
+          $ref: "#/components/schemas/MovieDetailed"
+      required:
+        - status
+        - data
+
+    RandomActorResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [success]
+          description: Status of the response
+        data:
+          $ref: "#/components/schemas/ActorDetailed"
+      required:
+        - status
+        - data
+
+    WikipediaResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [success]
+          description: Status of the response
+        data:
+          type: object
+          properties:
+            title:
+              type: string
+              description: Title of the Wikipedia article
+            extract:
+              type: string
+              description: Summary text from Wikipedia
+            thumbnail:
+              type: object
+              properties:
+                source:
+                  type: string
+                  description: URL to the thumbnail image
+                width:
+                  type: integer
+                  description: Width of the thumbnail
+                height:
+                  type: integer
+                  description: Height of the thumbnail
+      required:
+        - status
+        - data
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error message
+      required:
+        - error

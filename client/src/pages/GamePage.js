@@ -20,6 +20,35 @@ const GamePage = () => {
   const [wikipediaData, setWikipediaData] = useState(null);
   const [loadingWikiData, setLoadingWikiData] = useState(false);
   const [hintLevel, setHintLevel] = useState(0); // 0: aucun, 1: année, 2: résumé, 3: photo
+  const [score, setScore] = useState(0);
+  const [highScore, setHighScore] = useState(0);
+  const HIGH_SCORE_KEY = "filmfrenzy_high_score";
+
+  // Ajoutez ce hook dans votre composant GamePage
+  const [dimensions, setDimensions] = useState({
+    width: window.innerWidth * 0.85,
+    height: window.innerHeight * 0.65,
+  });
+
+  useEffect(() => {
+    function handleResize() {
+      setDimensions({
+        width: window.innerWidth * 0.85,
+        height: window.innerHeight * 0.65,
+      });
+    }
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  useEffect(() => {
+    // Récupérer le high score du localStorage
+    const savedHighScore = localStorage.getItem(HIGH_SCORE_KEY);
+    if (savedHighScore) {
+      setHighScore(parseInt(savedHighScore, 10));
+    }
+  }, []);
 
   // Function to initialize the game with a saved state or a random movie/actor
   const initializeGame = useCallback(async () => {
@@ -56,6 +85,12 @@ const GamePage = () => {
 
         setStartEntity(gameData.startEntity);
         setDiscoveredNodes(new Set(gameData.discoveredNodes));
+
+        if (gameData.score !== undefined) {
+          setScore(gameData.score);
+        } else {
+          setScore(0);
+        }
 
         console.log("Game loaded from save");
         setLoading(false);
@@ -143,6 +178,8 @@ const GamePage = () => {
       // Save the new game state
       saveGameState(graphData, randomEntity, [entityId]);
 
+      setScore(0);
+
       setLoading(false);
     } catch (error) {
       console.error("Error initializing game:", error);
@@ -197,14 +234,14 @@ const GamePage = () => {
   // Handle node click to show discovery modal
   const handleNodeClick = useCallback(
     async (node) => {
-      // Si le nœud est déjà découvert, montrer les informations sans possibilité de deviner
+      // Si le nœud est déjà découvert ou en mode info
       if (discoveredNodes.has(node.id)) {
         setSelectedNode(node);
         setGuessInput("");
-        setGuessResult("info"); // Mode "info seulement"
+        setGuessResult("info");
         setShowModal(true);
-        setHintLevel(3); // Tous les indices disponibles en mode info
-        setWikipediaData(null); // Réinitialiser pour éviter d'afficher des données obsolètes
+        setHintLevel(3);
+        setWikipediaData(null);
 
         // Si c'est un film, récupérer d'abord ses données depuis la BDD
         if (node.type === "movie") {
@@ -214,36 +251,40 @@ const GamePage = () => {
               `http://localhost:3001/api/movies/${entityId}`
             );
             const movieData = response.data;
-            setWikipediaData({ year: movieData.year }); // Définir d'abord l'année
+
+            // Stocker l'année et les genres du film
+            setWikipediaData({
+              year: movieData.year,
+              genres: movieData.genres, // Stocker les genres
+            });
 
             // Ensuite récupérer les données Wikipedia
             fetchWikipediaData(node).then((wikiData) => {
               if (wikiData) {
                 setWikipediaData((prevData) => ({
                   ...wikiData,
-                  year: movieData.year, // Garder l'année de la BDD
+                  year: movieData.year,
+                  genres: movieData.genres, // Conserver les genres
                 }));
               }
             });
           } catch (error) {
             console.error("Error fetching movie data:", error);
-            // Si l'obtention des données du film échoue, récupérer quand même les données Wikipedia
             fetchWikipediaData(node);
           }
         } else {
-          // Si c'est un acteur, récupérer simplement les données Wikipedia
           fetchWikipediaData(node);
         }
         return;
       }
 
-      // Pour les nœuds non découverts, commencer sans indice
+      // Pour les nœuds non découverts
       setSelectedNode(node);
       setGuessInput("");
       setGuessResult(null);
       setWikipediaData(null);
       setShowModal(true);
-      setHintLevel(0); // Aucun indice au début
+      setHintLevel(0);
 
       // Si c'est un film, récupérer d'abord ses données depuis la BDD
       if (node.type === "movie") {
@@ -253,24 +294,28 @@ const GamePage = () => {
             `http://localhost:3001/api/movies/${entityId}`
           );
           const movieData = response.data;
-          setWikipediaData({ year: movieData.year }); // Définir d'abord l'année
+
+          // Stocker l'année et les genres du film
+          setWikipediaData({
+            year: movieData.year,
+            genres: movieData.genres, // Stocker les genres
+          });
 
           // Ensuite récupérer les données Wikipedia
           fetchWikipediaData(node).then((wikiData) => {
             if (wikiData) {
               setWikipediaData((prevData) => ({
                 ...wikiData,
-                year: movieData.year, // Garder l'année de la BDD
+                year: movieData.year,
+                genres: movieData.genres, // Conserver les genres
               }));
             }
           });
         } catch (error) {
           console.error("Error fetching movie data:", error);
-          // Si l'obtention des données du film échoue, récupérer quand même les données Wikipedia
           fetchWikipediaData(node);
         }
       } else {
-        // Si c'est un acteur, récupérer simplement les données Wikipedia
         fetchWikipediaData(node);
       }
     },
@@ -288,6 +333,17 @@ const GamePage = () => {
     if (isCorrect) {
       // Update guess result and mark node as discovered
       setGuessResult("correct");
+
+      // Mettre à jour le score
+      const pointsEarned = 10;
+      const newScore = score + pointsEarned;
+      setScore(newScore);
+
+      // Vérifier et mettre à jour le high score si nécessaire
+      if (newScore > highScore) {
+        setHighScore(newScore);
+        localStorage.setItem(HIGH_SCORE_KEY, String(newScore));
+      }
 
       // Mark this node as discovered
       const updatedDiscoveredNodes = new Set([
@@ -436,7 +492,15 @@ const GamePage = () => {
       // If guess is wrong, show error state
       setGuessResult("wrong");
     }
-  }, [selectedNode, guessInput, graphData, discoveredNodes, startEntity]);
+  }, [
+    selectedNode,
+    guessInput,
+    graphData,
+    discoveredNodes,
+    startEntity,
+    score,
+    highScore,
+  ]);
 
   // Function to save game state
   const saveGameState = (graphData, startEntity, discoveredNodes) => {
@@ -457,6 +521,7 @@ const GamePage = () => {
         startEntity,
         discoveredNodes: Array.from(discoveredNodes),
         timestamp: new Date().getTime(),
+        score: score, // Sauvegarder le score
       };
 
       localStorage.setItem(GAME_SAVE_KEY, JSON.stringify(gameData));
@@ -491,8 +556,20 @@ const GamePage = () => {
 
   // Fonction pour débloquer le prochain indice
   const unlockNextHint = () => {
-    if (hintLevel < 3) {
+    // Pour les acteurs, il n'y a que 2 niveaux d'indices (résumé et photo)
+    // Pour les films, il y a 3 niveaux (année, résumé et photo)
+    const maxHintLevel = selectedNode?.type === "actor" ? 2 : 3;
+
+    if (hintLevel < maxHintLevel) {
       setHintLevel(hintLevel + 1);
+
+      // Pénalité de score pour chaque indice utilisé
+      setScore((prevScore) => Math.max(0, prevScore - 2)); // Empêche le score d'être négatif
+
+      // Mettre à jour la sauvegarde avec le nouveau score
+      if (graphData.nodes.length > 0 && startEntity) {
+        saveGameState(graphData, startEntity, Array.from(discoveredNodes));
+      }
     }
   };
 
@@ -536,19 +613,29 @@ const GamePage = () => {
     <div className="game-page">
       <div className="game-header">
         <h1>FilmFrenzy Game</h1>
-        <p>Débuté avec: {startEntity?.title || startEntity?.name}</p>
-        <button onClick={() => navigate("/")} className="back-button">
-          Retour à l'accueil
-        </button>
-        <button onClick={resetGame} className="restart-button">
-          Nouvelle partie
-        </button>
+        <div style={styles.gameStats}>
+          <p>Débuté avec: {startEntity?.title || startEntity?.name}</p>
+          <p>
+            Score: <span style={{ fontWeight: "bold" }}>{score}</span>
+          </p>
+          <p>
+            High Score: <span style={{ fontWeight: "bold" }}>{highScore}</span>
+          </p>
+          <p>
+            Découverts: {discoveredNodes.size} / {graphData.nodes.length}
+          </p>
+        </div>
+        <div style={styles.gameControls}>
+          <button onClick={() => navigate("/")} style={styles.backButton}>
+            Retour à l'accueil
+          </button>
+          <button onClick={resetGame} style={styles.restartButton}>
+            Nouvelle partie
+          </button>
+        </div>
       </div>
 
-      <div
-        className="graph-container"
-        style={{ width: "100%", height: "80vh" }}
-      >
+      <div className="graph-container" style={styles.graphContainer}>
         <ForceGraph2D
           graphData={graphData}
           nodeLabel={(node) =>
@@ -603,6 +690,8 @@ const GamePage = () => {
           }}
           onNodeClick={handleNodeClick}
           cooldownTicks={100}
+          width={dimensions.width}
+          height={dimensions.height}
         />
       </div>
 
@@ -632,43 +721,59 @@ const GamePage = () => {
               )}
 
               <div className="hint-container" style={styles.hintContainer}>
-                {/* Informations sur les indices disponibles */}
-                <div style={styles.hintProgress}>
-                  <p>
-                    Indices disponibles:
-                    <span
-                      style={{
-                        color: hintLevel >= 1 ? "#4CAF50" : "#ccc",
-                        marginLeft: "10px",
-                        fontWeight: hintLevel >= 1 ? "bold" : "normal",
-                      }}
-                    >
-                      Année
-                    </span>
-                    <span
-                      style={{
-                        color: hintLevel >= 2 ? "#4CAF50" : "#ccc",
-                        marginLeft: "10px",
-                        fontWeight: hintLevel >= 2 ? "bold" : "normal",
-                      }}
-                    >
-                      Résumé
-                    </span>
-                    <span
-                      style={{
-                        color: hintLevel >= 3 ? "#4CAF50" : "#ccc",
-                        marginLeft: "10px",
-                        fontWeight: hintLevel >= 3 ? "bold" : "normal",
-                      }}
-                    >
-                      Photo
-                    </span>
-                  </p>
-                </div>
+                {/* Informations sur les indices disponibles - affichées uniquement en mode devinette */}
+                {guessResult !== "info" && (
+                  <div style={styles.hintProgress}>
+                    <p>
+                      Indices disponibles:
+                      {selectedNode.type === "movie" && (
+                        <span
+                          style={{
+                            color: hintLevel >= 1 ? "#4CAF50" : "#ccc",
+                            marginLeft: "10px",
+                            fontWeight: hintLevel >= 1 ? "bold" : "normal",
+                          }}
+                        >
+                          Année
+                        </span>
+                      )}
+                      <span
+                        style={{
+                          color:
+                            hintLevel >= (selectedNode.type === "movie" ? 2 : 1)
+                              ? "#4CAF50"
+                              : "#ccc",
+                          marginLeft: "10px",
+                          fontWeight:
+                            hintLevel >= (selectedNode.type === "movie" ? 2 : 1)
+                              ? "bold"
+                              : "normal",
+                        }}
+                      >
+                        Résumé
+                      </span>
+                      <span
+                        style={{
+                          color:
+                            hintLevel >= (selectedNode.type === "movie" ? 3 : 2)
+                              ? "#4CAF50"
+                              : "#ccc",
+                          marginLeft: "10px",
+                          fontWeight:
+                            hintLevel >= (selectedNode.type === "movie" ? 3 : 2)
+                              ? "bold"
+                              : "normal",
+                        }}
+                      >
+                        Photo
+                      </span>
+                    </p>
+                  </div>
+                )}
 
-                {/* Indice 1: Année (de sortie pour film ou de naissance pour acteur) */}
-                {hintLevel >= 1 &&
-                  selectedNode.type === "movie" &&
+                {/* Année de sortie (pour les films) - visible dans tous les modes si disponible */}
+                {selectedNode.type === "movie" &&
+                  (guessResult === "info" || hintLevel >= 1) &&
                   wikipediaData && (
                     <div style={styles.yearHint}>
                       <p>
@@ -678,33 +783,24 @@ const GamePage = () => {
                     </div>
                   )}
 
-                {hintLevel >= 1 &&
-                  selectedNode.type === "actor" &&
-                  wikipediaData && (
-                    <div style={styles.yearHint}>
-                      <p>
-                        <strong>Né(e) en:</strong>{" "}
-                        {wikipediaData.birthDate || "Date inconnue"}
+                {/* Résumé - visible dans tous les modes si disponible */}
+                {(guessResult === "info" ||
+                  hintLevel >= (selectedNode.type === "movie" ? 2 : 1)) &&
+                  wikipediaData &&
+                  wikipediaData.extract && (
+                    <div style={styles.extractContainer}>
+                      <h3>Résumé:</h3>
+                      <p style={styles.extractText}>
+                        {guessResult === "info"
+                          ? wikipediaData.extract
+                          : getWikipediaHint()}
                       </p>
                     </div>
                   )}
 
-                {/* Indice 2: Résumé */}
-                {hintLevel >= 2 && wikipediaData && wikipediaData.extract && (
-                  <div style={styles.extractContainer}>
-                    <h3>Résumé:</h3>
-                    <p style={styles.extractText}>
-                      {
-                        guessResult === "info"
-                          ? wikipediaData.extract // Afficher l'extrait complet en mode info
-                          : getWikipediaHint() // Afficher un indice en mode devinette
-                      }
-                    </p>
-                  </div>
-                )}
-
-                {/* Indice 3: Photo */}
-                {hintLevel >= 3 ? (
+                {/* Photo - visible dans tous les modes si disponible */}
+                {guessResult === "info" ||
+                hintLevel >= (selectedNode.type === "movie" ? 3 : 2) ? (
                   loadingWikiData ? (
                     <div style={styles.loadingContainer}>
                       <p>Loading image...</p>
@@ -735,7 +831,25 @@ const GamePage = () => {
                   </div>
                 )}
 
-                {/* Si aucun indice n'est débloqué et qu'on n'est pas en mode info, afficher un message */}
+                {/* Genres du film - toujours visibles comme indice gratuit */}
+                {selectedNode.type === "movie" &&
+                  wikipediaData &&
+                  wikipediaData.genres && (
+                    <div style={styles.genresContainer}>
+                      <p>
+                        <strong>Genres:</strong>{" "}
+                        <span style={styles.genresList}>
+                          {wikipediaData.genres.map((genre, index) => (
+                            <span key={genre.id} style={styles.genreTag}>
+                              {genre.genre}
+                            </span>
+                          ))}
+                        </span>
+                      </p>
+                    </div>
+                  )}
+
+                {/* Message si aucun indice n'est débloqué - uniquement en mode devinette */}
                 {hintLevel === 0 && guessResult !== "info" && (
                   <div style={styles.noHintsMessage}>
                     <p>
@@ -747,11 +861,12 @@ const GamePage = () => {
               </div>
 
               {/* Bouton pour débloquer le prochain indice si on n'est pas en mode info */}
-              {guessResult !== "info" && hintLevel < 3 && (
-                <button onClick={unlockNextHint} style={styles.hintButton}>
-                  Débloquer l'indice suivant
-                </button>
-              )}
+              {guessResult !== "info" &&
+                hintLevel < (selectedNode.type === "movie" ? 3 : 2) && (
+                  <button onClick={unlockNextHint} style={styles.hintButton}>
+                    Débloquer l'indice suivant
+                  </button>
+                )}
 
               {/* Champ de saisie pour la réponse (uniquement en mode devinette) */}
               {guessResult !== "info" && (
@@ -781,7 +896,15 @@ const GamePage = () => {
               {/* Messages de résultat */}
               {guessResult === "correct" && (
                 <div style={{ ...styles.resultMessage, color: "#4CAF50" }}>
-                  Correct! The {selectedNode.type} is "{selectedNode.name}".
+                  <p>
+                    Correct! The {selectedNode.type} is "{selectedNode.name}".
+                  </p>
+                  <p style={{ fontSize: "14px", marginTop: "5px" }}>
+                    +10 points!{" "}
+                    {hintLevel > 0
+                      ? `(-${hintLevel * 2} points d'indices)`
+                      : ""}
+                  </p>
                 </div>
               )}
               {guessResult === "wrong" && (
@@ -799,6 +922,18 @@ const GamePage = () => {
 
 // Styles for the modal and related components
 const styles = {
+  graphContainer: {
+    width: "90%",
+    height: "70vh",
+    margin: "20px auto",
+    border: "2px solid #ccc",
+    borderRadius: "8px",
+    padding: "10px",
+    backgroundColor: "#fdfdfd",
+    boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)",
+    overflow: "hidden", // Pour s'assurer que le graphe ne déborde pas
+    position: "relative", // Important pour le positionnement du graphe
+  },
   modalOverlay: {
     position: "fixed",
     top: 0,
@@ -856,14 +991,17 @@ const styles = {
   imageContainer: {
     position: "relative",
     width: "100%",
-    maxHeight: "200px",
     display: "flex",
     justifyContent: "center",
+    alignItems: "center",
     marginBottom: "15px",
+    maxHeight: "250px", // Hauteur maximale un peu plus grande
+    overflow: "hidden", // Masquer tout débordement
   },
   wikiImage: {
     maxWidth: "100%",
-    maxHeight: "100%",
+    maxHeight: "250px", // Même hauteur maximale que le conteneur
+    objectFit: "contain", // Maintient les proportions sans déformation
     borderRadius: "6px",
   },
   yearOverlay: {
@@ -963,6 +1101,61 @@ const styles = {
     color: "#666",
     borderRadius: "4px",
     marginBottom: "15px",
+  },
+  gameStats: {
+    display: "flex",
+    justifyContent: "space-between",
+    margin: "10px 0",
+    padding: "10px",
+    backgroundColor: "#f0f0f0",
+    borderRadius: "4px",
+    flexWrap: "wrap",
+  },
+  gameControls: {
+    display: "flex",
+    margin: "10px",
+  },
+  backButton: {
+    padding: "8px 16px",
+    backgroundColor: "#f44336",
+    color: "white",
+    border: "none",
+    borderRadius: "4px",
+    cursor: "pointer",
+    marginRight: "10px",
+    fontSize: "14px",
+  },
+  restartButton: {
+    padding: "8px 16px",
+    backgroundColor: "#4CAF50",
+    color: "white",
+    border: "none",
+    borderRadius: "4px",
+    cursor: "pointer",
+    fontSize: "14px",
+  },
+  genresContainer: {
+    textAlign: "center",
+    padding: "10px",
+    backgroundColor: "#e3f2fd",
+    borderRadius: "4px",
+    marginBottom: "15px",
+  },
+  genresList: {
+    display: "flex",
+    flexWrap: "wrap",
+    justifyContent: "center",
+    gap: "5px",
+  },
+  genreTag: {
+    display: "inline-block",
+    padding: "3px 8px",
+    backgroundColor: "#bbdefb",
+    color: "#0d47a1",
+    borderRadius: "12px",
+    fontSize: "12px",
+    fontWeight: "500",
+    margin: "2px",
   },
 };
 
