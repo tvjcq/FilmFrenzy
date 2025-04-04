@@ -19,5 +19,10 @@
     "sequelize": "^6.37.7",
     "sqlite3": "^5.1.7",
     "wikipedia": "^2.1.2"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "sequelize-mock": "^0.10.2",
+    "supertest": "^7.1.0"
   }
 }
