@@ -48,59 +48,84 @@ cd FilmFrenzy
 
 ### Configuration de la base de données
 
-1. Créez une base de données MySQL pour le projet:
+1. Installez et démarrez XAMPP:
 
-   ```sql
-   CREATE DATABASE filmfrenzy;
-   ```
+   - Téléchargez XAMPP depuis [le site officiel](https://www.apachefriends.org/fr/index.html)
+   - Installez et lancez le panneau de contrôle XAMPP
+   - Démarrez les services Apache et MySQL
 
-2. Importez le schéma et les données de base (si disponibles):
+2. Créez une base de données:
 
-   ```bash
-   mysql -u [username] -p filmfrenzy < setup/database.sql
-   ```
+   - Ouvrez votre navigateur et accédez à `http://localhost/phpmyadmin`
+   - Cliquez sur "Nouvelle base de données" dans le menu latéral
+   - Entrez le nom que vous voulez comme nom de la base de données et cliquez sur "Créer"
 
-   Si vous n'avez pas de fichier SQL, vous devrez créer les tables nécessaires:
+3. Créez les tables nécessaires:
 
-   ```sql
-    CREATE TABLE movies (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        title VARCHAR(255) NOT NULL,
-        year INT NOT NULL,
-        createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-    );
+   - Dans phpMyAdmin, sélectionnez la base de données que vous venez de créer
+   - Soit vous importez si vous avez déjà les données
+   - Sinon collez le code suivant dans la page SQL:
 
-    CREATE TABLE actors (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        name VARCHAR(255) NOT NULL,
-        createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-    );
+     ```sql
+     CREATE TABLE movies (
+         id INT AUTO_INCREMENT PRIMARY KEY,
+         title VARCHAR(255) NOT NULL,
+         year INT NOT NULL
+     );
 
-    CREATE TABLE genres (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        genre VARCHAR(255) NOT NULL,
-        createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-    );
+     CREATE TABLE actors (
+         id INT AUTO_INCREMENT PRIMARY KEY,
+         name VARCHAR(255) NOT NULL
+     );
 
-    CREATE TABLE MoviesActors (
-        id_movie INT,
-        id_actor INT,
-        PRIMARY KEY (id_movie, id_actor),
-        FOREIGN KEY (id_movie) REFERENCES movies(id) ON DELETE CASCADE,
-        FOREIGN KEY (id_actor) REFERENCES actors(id) ON DELETE CASCADE
-    );
+     CREATE TABLE genres (
+         id INT AUTO_INCREMENT PRIMARY KEY,
+         genre VARCHAR(255) NOT NULL
+     );
 
-    CREATE TABLE MoviesGenres (
-        id_movie INT,
-        id_genre INT,
-        PRIMARY KEY (id_movie, id_genre),
-        FOREIGN KEY (id_movie) REFERENCES movies(id) ON DELETE CASCADE,
-        FOREIGN KEY (id_genre) REFERENCES genres(id) ON DELETE CASCADE
-    );
-   ```
+     CREATE TABLE MoviesActors (
+         id_movie INT,
+         id_actor INT,
+         PRIMARY KEY (id_movie, id_actor),
+         FOREIGN KEY (id_movie) REFERENCES movies(id) ON DELETE CASCADE,
+         FOREIGN KEY (id_actor) REFERENCES actors(id) ON DELETE CASCADE
+     );
+
+     CREATE TABLE MoviesGenres (
+         id_movie INT,
+         id_genre INT,
+         PRIMARY KEY (id_movie, id_genre),
+         FOREIGN KEY (id_movie) REFERENCES movies(id) ON DELETE CASCADE,
+         FOREIGN KEY (id_genre) REFERENCES genres(id) ON DELETE CASCADE
+     );
+     -- Ajout de quelques données de test
+     INSERT INTO movies (title, year) VALUES
+     ('Inception', 2010),
+     ('The Dark Knight', 2008),
+     ('Pulp Fiction', 1994);
+
+     INSERT INTO actors (name) VALUES
+     ('Leonardo DiCaprio'),
+     ('Christian Bale'),
+     ('Samuel L. Jackson');
+
+     INSERT INTO genres (genre) VALUES
+     ('Action'),
+     ('Science-Fiction'),
+     ('Drame');
+
+     -- Association films-acteurs
+     INSERT INTO MoviesActors (id_movie, id_actor) VALUES
+     (1, 1), -- Inception - DiCaprio
+     (2, 2), -- Dark Knight - Bale
+     (3, 3); -- Pulp Fiction - Jackson
+
+     -- Association films-genres
+     INSERT INTO MoviesGenres (id_movie, id_genre) VALUES
+     (1, 2), -- Inception - Science-Fiction
+     (2, 1), -- Dark Knight - Action
+     (3, 3); -- Pulp Fiction - Drame
+     ```
 
 ### Configuration de l'API
 
@@ -120,9 +145,9 @@ cd FilmFrenzy
 
    ```
    DB_HOST=localhost
-   DB_USER=votre_utilisateur_mysql
-   DB_PASSWORD=votre_mot_de_passe_mysql
-   DB_NAME=filmfrenzy
+   DB_USER=root
+   DB_PASSWORD=
+   DB_NAME=FilmFrenzy
    ```
 
 ### Configuration du client
