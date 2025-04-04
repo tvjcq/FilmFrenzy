@@ -66,33 +66,39 @@ cd FilmFrenzy
     CREATE TABLE movies (
         id INT AUTO_INCREMENT PRIMARY KEY,
         title VARCHAR(255) NOT NULL,
-        year INT NOT NULL
+        year INT NOT NULL,
+        createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
     );
 
     CREATE TABLE actors (
         id INT AUTO_INCREMENT PRIMARY KEY,
-        name VARCHAR(255) NOT NULL
+        name VARCHAR(255) NOT NULL,
+        createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
     );
 
     CREATE TABLE genres (
         id INT AUTO_INCREMENT PRIMARY KEY,
-        genre VARCHAR(255) NOT NULL
+        genre VARCHAR(255) NOT NULL,
+        createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
     );
 
     CREATE TABLE MoviesActors (
         id_movie INT,
         id_actor INT,
         PRIMARY KEY (id_movie, id_actor),
-        FOREIGN KEY (id_movie) REFERENCES movies(id),
-        FOREIGN KEY (id_actor) REFERENCES actors(id)
+        FOREIGN KEY (id_movie) REFERENCES movies(id) ON DELETE CASCADE,
+        FOREIGN KEY (id_actor) REFERENCES actors(id) ON DELETE CASCADE
     );
 
     CREATE TABLE MoviesGenres (
         id_movie INT,
         id_genre INT,
         PRIMARY KEY (id_movie, id_genre),
-        FOREIGN KEY (id_movie) REFERENCES movies(id),
-        FOREIGN KEY (id_genre) REFERENCES genres(id)
+        FOREIGN KEY (id_movie) REFERENCES movies(id) ON DELETE CASCADE,
+        FOREIGN KEY (id_genre) REFERENCES genres(id) ON DELETE CASCADE
     );
    ```
 
@@ -117,7 +123,6 @@ cd FilmFrenzy
    DB_USER=votre_utilisateur_mysql
    DB_PASSWORD=votre_mot_de_passe_mysql
    DB_NAME=filmfrenzy
-   PORT=3001
    ```
 
 ### Configuration du client
@@ -238,7 +243,5 @@ Pour plus de détails, consultez la documentation OpenAPI dans le fichier `docAP
 
 - **React 19**: Bibliothèque JavaScript pour construire l'interface utilisateur.
 - **React Router**: Gestion de la navigation entre les pages de l'application.
-- **Framer Motion**: Bibliothèque pour ajouter des animations fluides.
 - **Axios**: Client HTTP pour effectuer des appels API.
 - **React Force Graph**: Visualisation interactive des relations entre films et acteurs.
-- **D3.js**: Bibliothèque pour manipuler les données et créer des visualisations dynamiques.
